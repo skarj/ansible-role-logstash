@@ -1,0 +1,30 @@
+output {
+  if [@metadata][beat] {
+{% if logstash.outputs.elasticsearch.separate_filebeat_indexes %}
+    if [fields][project] and [fields][environment] {
+      elasticsearch {
+        hosts => {{ logstash.outputs.elasticsearch.hosts | to_json }}
+        manage_template => false
+        index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{[fields][project]}-%{[fields][environment]}-%{+YYYY.MM.dd}"
+      }
+    } else {
+      elasticsearch {
+        hosts => {{ logstash.outputs.elasticsearch.hosts | to_json }}
+        manage_template => false
+        index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+      }
+    }
+{% else %}
+    elasticsearch {
+      hosts => {{ logstash.outputs.elasticsearch.hosts | to_json }}
+      manage_template => false
+      index => "%{[@metadata][beat]}-%{[@metadata][version]}-%{+YYYY.MM.dd}"
+    }
+{% endif %}
+  } else {
+    elasticsearch {
+      hosts => {{ logstash.outputs.elasticsearch.hosts | to_json }}
+      index => "logstash-%{+YYYY.MM.dd}"
+    }
+  }
+}

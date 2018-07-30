@@ -1,0 +1,20 @@
+---
+
+- name: install on redhat host
+  import_tasks: redhat/install.yml
+  when: (ansible_os_family | lower == "redhat")
+
+- name: install on debian host
+  import_tasks: debian/install.yml
+  when: (ansible_os_family | lower == "debian")
+
+- name: install required plugins
+  command: ./bin/logstash-plugin install {{ item }}
+  args:
+    chdir: /usr/share/logstash
+  loop: "{{ logstash.plugins }}"
+  register: plugins_installed
+  notify:
+    - logstash restart
+    - logstash status
+  changed_when: false

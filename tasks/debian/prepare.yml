@@ -1,0 +1,31 @@
+---
+
+- name: ensure dependencies are installed
+  package:
+    name:
+      - python-apt
+      - apt-transport-https
+
+- name: ensure Elastic repository key is present
+  apt_key:
+    url: "http://packages.elastic.co/GPG-KEY-elasticsearch"
+
+- name: ensure Elastic repository is present
+  apt_repository:
+    repo: "deb https://artifacts.elastic.co/packages/{{ logstash.version.split('.')[:1] | join('.') }}.x/apt stable main"
+
+- name: ensure backports repository is present
+  apt_repository:
+    repo: "deb http://http.debian.net/debian jessie-backports main"
+  when: ansible_distribution_version == '8'
+
+- name: ensure openjdk8 is installed
+  apt:
+    name: openjdk-8-jdk
+    default_release: "{{ 'jessie-backports' if ansible_distribution_version == '8' else omit }}"
+    update_cache: true
+
+- name: correct java version selected
+  alternatives:
+    name: java
+    path: /usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java

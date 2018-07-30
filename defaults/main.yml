@@ -1,0 +1,83 @@
+---
+
+logstash:
+
+  # Version of the logstash server
+  version: "6.3.2"
+
+  # Lock logstash version
+  pin_version: true
+
+  jvm:
+    heap_size: 2g
+    # additional java options
+    options:
+      - '-Djava.security.egd=file:/dev/urandom'
+
+  config:
+    path:
+      # Directory should be used by logstash and its plugins
+      data: /var/lib/logstash
+      # Where to fetch the pipeline configuration for the main pipeline
+      config: /etc/logstash/conf.d
+      # logstash logs
+      logs: /var/log/logstash
+    # Debugging Settings
+    log:
+      level: warn
+    http:
+      # Bind address for the metrics REST endpoint
+      host: "127.0.0.1"
+      # Bind port for the metrics REST endpoint
+      port: 9600
+
+  plugins:
+    - logstash-input-beats
+    - logstash-input-syslog
+    - logstash-input-gelf
+    - logstash-filter-truncate
+    - logstash-patterns-core
+    - logstash-output-elasticsearch
+    - logstash-output-gelf
+
+  inputs:
+    beats:
+      enabled: true
+      config: 01-beats-input.conf
+      port: 5044
+    syslog:
+      enabled: false
+      config: 02-syslog-input.conf
+      codec: plain
+      port: 514
+    gelf:
+      enabled: false
+      config: 03-gelf-input.conf
+      port: 12201
+    network:
+      enabled: false
+      config: 04-network-input.conf
+      params:
+        - udp:
+            codec: plain
+            port: 5000
+
+  outputs:
+    elasticsearch:
+      enabled: true
+      config: 30-elasticsearch-output.conf
+      separate_filebeat_indexes: false
+      # The hosts where Logstash should ship logs to Elasticsearch
+      hosts: []
+    graylog:
+      enabled: false
+      config: 31-graylog-output.conf
+      # The hosts where Logstash should ship logs to Graylog2
+      hosts: []
+
+  # Local paths to the SSL certificate and key files,
+  # which will be copied into the logstash.ssl.dir
+  ssl:
+    certificate: ""
+    key: ""
+    dir: /etc/pki/logstash

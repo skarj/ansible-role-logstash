@@ -1,0 +1,12 @@
+#jinja2: lstrip_blocks: True
+input {
+{% for dict_item in logstash.inputs.network.params %}
+  {% for key,parent_dict_item in dict_item.items() %}
+  {{ key }} {
+  {% for nested_key,nested_value in parent_dict_item.items() | sort %}
+    {{ nested_key }} => {{ nested_value }}
+  {% endfor %}
+  }
+  {% endfor %}
+{% endfor %}
+}

@@ -1,0 +1,6 @@
+input {
+  syslog {
+    port => {{ logstash.inputs.syslog.port }}
+    codec => "{{ logstash.inputs.syslog.codec }}"
+  }
+}

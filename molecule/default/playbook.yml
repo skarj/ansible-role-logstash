@@ -1,0 +1,29 @@
+---
+
+- name: Converge
+  hosts: all
+  roles:
+    - role: logstash
+      logstash_install_plugins: false
+      logstash:
+        inputs:
+          beats:
+            enabled: true
+            port: 5044
+          syslog:
+            enabled: true
+            port: 514
+          gelf:
+            enabled: true
+            port: 12201
+          network:
+            enabled: true
+            params:
+              - udp:
+                  port: 5000
+                  codec: json
+        outputs:
+          elasticsearch:
+            enabled: true
+            hosts:
+              - 127.0.0.1:9200

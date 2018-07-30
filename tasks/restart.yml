@@ -1,0 +1,14 @@
+---
+
+- name: ensure logstash service started and enabled
+  service:
+    name: logstash
+    state: started
+    enabled: true
+
+- name: restart logstash service
+  debug:
+    msg: "restart logstash"
+  changed_when: true
+  when: force_restart | default('no') | bool
+  notify: logstash restart

@@ -1,0 +1,12 @@
+input {
+  beats {
+    port => {{ logstash.inputs.beats.port }}
+    client_inactivity_timeout => "120"
+{% if logstash.ssl.certificate and logstash.ssl.key %}
+    ssl => true
+    ssl_certificate => "{{ logstash.ssl.dir }}/{{ logstash.ssl.certificate | basename }}"
+    ssl_key => "{{ logstash.ssl.dir }}/{{ logstash.ssl.key | basename }}"
+    ssl_verify_mode => "force_peer"
+{% endif %}
+  }
+}

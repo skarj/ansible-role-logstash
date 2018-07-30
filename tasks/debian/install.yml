@@ -1,0 +1,69 @@
+---
+
+- name: get information about installed logstash package
+  shell: dpkg -s logstash | grep "Version:"
+  changed_when: false
+  failed_when: false
+  register: dpkg_info
+  args:
+    warn: false
+  check_mode: false
+
+- name: get version of installed logstash package
+  set_fact:
+    installed_package_version: "{{ dpkg_info.stdout | regex_search('(\\d\\.\\d\\.\\d)') }}"
+  check_mode: false
+  when:
+    - dpkg_info is defined
+    - dpkg_info.stdout_lines | list | length > 0
+
+- name: show logstash version
+  debug:
+    msg: "{% if installed_package_version is defined %}Current: {{ installed_package_version }} {% endif %}Install: {{ logstash.version }}"
+
+- name: get information about version locks
+  command: dpkg --get-selections logstash
+  changed_when: false
+  register: dpkg_hold
+  args:
+    warn: false
+  check_mode: false
+  when: logstash.pin_version
+
+- name: remove version lock for logstash
+  dpkg_selections:
+    name: logstash
+    selection: install
+  when:
+    - logstash.pin_version
+    - "'hold' in dpkg_hold.stdout"
+    - installed_package_version is defined
+    - installed_package_version is version(logstash.version, '<>')
+  notify: logstash hold version
+
+- name: uninstall logstash
+  package:
+    name: logstash
+    state: absent
+  when: (installed_package_version is defined and
+        installed_package_version is version(logstash.version, '<>')) or
+        logstash_force_reinstall | default('no') | bool
+
+- name: install logstash
+  package:
+    name: "logstash=1:{{ logstash.version }}*"
+    update_cache: true
+  notify:
+    - systemd daemon reload
+    - logstash restart
+    - logstash status
+    - logstash hold version
+
+- name: lock logstash version
+  debug:
+    msg: "Pin logstash version"
+  changed_when: true
+  when:
+    - logstash.pin_version
+    - "not 'hold' in dpkg_hold.stdout"
+  notify: logstash hold version

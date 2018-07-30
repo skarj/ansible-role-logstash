@@ -1,0 +1,57 @@
+---
+
+- name: get information about installed logstash package
+  yum:
+    list: logstash
+  check_mode: false
+  register: yum_list
+
+- name: get version of installed logstash package
+  set_fact:
+    installed_package_version: "{{ yum_list.results | selectattr('yumstate','equalto','installed') | map(attribute='version') | first }}"
+  check_mode: false
+  when: yum_list.results | selectattr('yumstate','equalto','installed') | list | length > 0
+
+- name: get information about version locks
+  command: yum versionlock list
+  changed_when: false
+  register: yum_lock
+  args:
+    warn: false
+  check_mode: false
+  when: logstash.pin_version
+
+- name: show logstash version
+  debug:
+    msg: "{% if installed_package_version is defined %}Current: {{ installed_package_version }} {% endif %}Install: {{ logstash.version }}"
+
+- name: remove version lock for logstash package
+  command: yum versionlock delete *logstash*
+  args:
+    warn: false
+  when:
+    - "'logstash' in yum_lock.stdout"
+    - logstash.pin_version
+    - installed_package_version is defined
+    - installed_package_version is version(logstash.version, '<>')
+  notify: logstash lock version
+
+- name: install logstash
+  yum:
+    name: "logstash-{{ logstash.version }}"
+    update_cache: true
+    allow_downgrade: true
+  notify:
+    - systemd daemon reload
+    - logstash restart
+    - logstash status
+    - logstash lock version
+
+- name: lock logstash version
+  debug:
+    msg: "Pin logstash version"
+  changed_when: true
+  when:
+    - logstash.pin_version
+    - "not 'logstash' in yum_lock.stdout"
+  notify: logstash lock version

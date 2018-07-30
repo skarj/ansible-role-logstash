@@ -1,0 +1,137 @@
+---
+
+- name: create a list of installed configs
+  find:
+    paths: "{{ logstash.config.path.config }}"
+    patterns: "*.conf"
+    file_type: "file"
+  register: logstash_configs_installed
+
+- name: create a list of enabled input and output configs
+  set_fact:
+    logstash_connectors: "{{ logstash_connectors|default([]) + [item.value.config] }}"
+  with_dict: "{{ logstash.inputs|combine(logstash.outputs)}}"
+  when: item.value.enabled|bool
+
+- name: create a list of available filters
+  set_fact:
+    logstash_filters: "{{ logstash_filters|default([]) + [item.split('/')[-1]] }}"
+  with_fileglob:
+    - files/filters/*.conf
+
+
+- name: remove unused conf.d configs
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ logstash_configs_installed.files }}"
+  when: item.path.split('/')[-1] not in logstash_connectors|default([]) + logstash_filters|default([])
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: deliver logstash.yml config
+  copy:
+    content: "{{ logstash.config | to_nice_yaml }}"
+    dest: /etc/logstash/logstash.yml
+    owner: root
+    group: root
+    mode: 0644
+    backup: true
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: deliver log4j2 config
+  copy:
+    src: log4j2.properties
+    dest: /etc/logstash/log4j2.properties
+    owner: root
+    group: root
+    mode: 0644
+    backup: true
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: set JVM heap size
+  lineinfile:
+    dest: "/etc/logstash/jvm.options"
+    regexp: '^-{{ item }}.*'
+    line: '-{{ item }}{{ logstash.jvm.heap_size }}'
+  loop:
+    - Xmx
+    - Xms
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: add custom JVM options
+  blockinfile:
+    dest: "/etc/logstash/jvm.options"
+    content: "{{ lookup('template', 'templates/jvm.options.j2') }}"
+    state: present
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: deliver inputs and outputs configs
+  template:
+    src: "{{ item }}.j2"
+    dest: "{{ logstash.config.path.config }}/{{ item }}"
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ logstash_connectors }}"
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: deliver filter configs
+  copy:
+    src: "filters/{{ item }}"
+    dest: "{{ logstash.config.path.config }}"
+    owner: root
+    group: root
+    mode: 0644
+  loop: "{{ logstash_filters }}"
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: update all plugins to the latest versions
+  command: ./bin/logstash-plugin update
+  args:
+    chdir: /usr/share/logstash
+  register: plugins_updated
+  changed_when: "'Updated ' in plugins_updated.stdout"
+  notify:
+    - logstash restart
+    - logstash status
+
+- name: check logstash dir ownership
+  file:
+    path: /usr/share/logstash
+    state: directory
+    owner: logstash
+    group: logstash
+    recurse: true
+
+- name: ensure ssl directory exists
+  file:
+    path: "{{ logstash.ss.dir }}"
+    state: directory
+  when: logstash.ssl.key
+
+- name: deliver key and cert
+  copy:
+    src: "{{ item }}"
+    dest: "{{ logstash_ssl_dir }}/{{ item | basename }}"
+    mode: 0644
+  with_items:
+    - "{{ logstash.ssl.key }}"
+    - "{{ logstash.ssl.certificate }}"
+  when: logstash.ssl.key
+  notify:
+    - logstash restart
+    - logstash status

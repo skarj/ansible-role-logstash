@@ -1,0 +1,5 @@
+{% if logstash.jvm.options !='' %}
+{% for item in logstash.jvm.options %}
+{{ item }}
+{% endfor %}
+{% endif %}

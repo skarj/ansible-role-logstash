@@ -3,6 +3,7 @@
 logstash:
 
   # Version of the logstash server
+  # https://www.elastic.co/guide/en/logstash/current/releasenotes.html
   version: "6.3.2"
 
   # Lock logstash version
@@ -32,12 +33,9 @@ logstash:
       port: 9600
 
   plugins:
-    - logstash-input-beats
-    - logstash-input-syslog
-    - logstash-input-gelf
     - logstash-filter-truncate
     - logstash-patterns-core
-    - logstash-output-elasticsearch
+    - logstash-input-gelf
     - logstash-output-gelf
 
   inputs:

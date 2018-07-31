@@ -8,3 +8,8 @@
 
 - import_tasks: configure.yml
   tags: configure
+
+- import_tasks: restart.yml
+  tags:
+    - start
+    - restart

@@ -1,33 +1,35 @@
 ---
 
+process:
+  java:
+    running: true
+
 service:
   logstash:
     enabled: true
     running: true
 
 port:
-  # tcp6:5000:
-  #   listening: true
-  #   ip:
-  #     - "::"
-  udp6:5000:
+  # beats
+  tcp:5044:
     listening: true
     ip:
-      - "::"
-  tcp6:5044:
-    listening: true
-    ip:
-      - "::"
-  # todo selinux for udp
-  # udp6:514:
-  #   listening: true
-  #   ip:
-  #     - "::"
-  udp6:12201:
-    listening: true
-    ip:
-      - "::"
+      - "0.0.0.0"
 
-process:
-  java:
-    running: true
+  # gelf
+  udp:12201:
+    listening: true
+    ip:
+      - "0.0.0.0"
+
+  # network
+  udp:5000:
+    listening: true
+    ip:
+      - "0.0.0.0"
+
+  # syslog
+  udp:5514:
+    listening: true
+    ip:
+      - "0.0.0.0"

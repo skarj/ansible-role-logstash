@@ -34,28 +34,10 @@ An example of how to use logstash server role:
 
         - hosts: all
           roles:
-            - role: logstash
+            - role: ansible-role-logstash
               logstash:
-                inputs:
-                  beats:
-                    enabled: true
-                  gelf:
-                    enabled: false
-                  syslog:
-                    enabled: false
-                  network:
-                    enabled: false
-                    params:
-                      - udp:
-                          port: 5000
-                          codec: json
-                      - tcp:
-                          port: 5000
-                          codec: json
-
                 outputs:
                   elasticsearch:
-                    enabled: true
                     hosts:
                       - 192.168.10.192:9200
 

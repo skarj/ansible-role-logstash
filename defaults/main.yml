@@ -4,7 +4,7 @@ logstash:
 
   # Version of the logstash server
   # https://www.elastic.co/guide/en/logstash/current/releasenotes.html
-  version: "6.5.2"
+  version: "6.6.0"
 
   # Lock logstash version
   pin_version: true
